@@ -229,6 +229,9 @@ class BuildingBackground {
 
 // Class goal end
 
+var myPlayer = 1;
+var otherPlayerPose;
+
 
 function setup() {
   createCanvas(600, 400);
@@ -277,11 +280,33 @@ function setup() {
   brain = ml5.neuralNetwork(options);
   //   brain.loadData('ATIOLF.json',dataReady);
   const modelInfo = {
-    model: 'model/model.json',
-    metadata: 'model/model_meta.json',
-    weights: 'model/model.weights.bin',
+    model: 'public/model/model.json',
+    metadata: 'public/model/model_meta.json',
+    weights: 'public/model/model.weights.bin',
   };
   brain.load(modelInfo, brainLoaded);
+  
+  // twoplayer setup
+  TwoPlayer.onsystem = function(data) {
+    if (data.key == "room") {
+      TwoPlayer.send("player1");
+      document.getElementById('link').innerHTML = `<a href="${'/?roomId='+data.room}">${data.room}</a>`;
+    }
+  }
+
+  TwoPlayer.ondata = function(message) {
+    if (message == "player1") {
+      myPlayer = 2;
+      TwoPlayer.send("player2");
+      document.getElementById('message').innerText = "Connected!"
+    } else if (message == "player2") {
+      myPlayer = 1;
+      document.getElementById('message').innerText = "Connected!"
+    } else {
+      let data = JSON.parse(message);
+      otherPlayerPose = data.pose;
+    }
+  }
 }
 
 function brainLoaded() {
@@ -327,6 +352,7 @@ function gotPoses(poses) {
   // console.log(poses); 
   if (poses.length > 0) {
     pose = poses[0].pose;
+    TwoPlayer.send(JSON.stringify({pose: pose}));
     skeleton = poses[0].skeleton;
     if (state == 'collecting') {
       let inputs = [];
